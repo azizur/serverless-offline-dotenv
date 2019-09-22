@@ -26,14 +26,14 @@ class ServerlessOfflineDotEnv {
       if (this.serverless.service) {
 
         if (this.serverless.service.provider && this.serverless.service.provider.environment) {
-          this.override(this.serverless.service.provider.environment, (key, oldValue, newValue) => {
+          this.overrideProviderEnv(this.serverless.service.provider.environment, (key, oldValue, newValue) => {
             log(key, oldValue, newValue);
           });
         }
 
         if (this.serverless.service.functions) {
           Object.keys(this.serverless.service.functions).forEach((funcName) => {
-            this.override(this.serverless.service.functions[funcName].environment || {}, (key, oldValue, newValue) => {
+            this.overrideFunctionEnv(this.serverless.service.functions[funcName].environment || {}, (key, oldValue, newValue) => {
               log(key, oldValue, newValue, funcName);
             });
           });
@@ -55,7 +55,7 @@ class ServerlessOfflineDotEnv {
 
         this.serverless.cli.log(`Reading dotenv variables from ${this.path} (encoding: ${this.encoding})`);
 
-        fs.readFileSync(this.path, {encoding: this.encoding}).split('\n').forEach((line) => {
+        fs.readFileSync(this.path, { encoding: this.encoding }).split('\n').forEach((line) => {
 
           const matched = line.trim().match(/^([\w.-]+)\s*=\s*(.*)$/)
           if (!matched) {
@@ -79,7 +79,25 @@ class ServerlessOfflineDotEnv {
     return this._dotenv;
   }
 
-  override(obj, callback) {
+  overrideProviderEnv(obj, callback) {
+
+    const dotenv = this.dotenv();
+
+    Object.keys(dotenv).forEach((key) => {
+
+      // if (!obj.hasOwnProperty(key)) {
+      //   return;
+      // }
+
+      let oldValue = obj[key];
+      obj[key] = dotenv[key];
+      callback(key, oldValue, dotenv[key]);
+
+    });
+
+  }
+
+  overrideFunctionEnv(obj, callback) {
 
     const dotenv = this.dotenv();
 
